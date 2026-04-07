@@ -1,0 +1,34 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.bak_*
+*.swp
+*.tmp
+
+# FreeCAD cache
+*.fcstd1
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Specific directories to ignore
+{icons,resources}/
+__pycache__/
