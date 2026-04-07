@@ -40,6 +40,7 @@ except ImportError:
     from PySide2 import QtWidgets, QtCore, QtGui
 
 from push_notification import core
+from push_notification import objects
 
 
 # ──────────────────────────────────────────────────────────────
@@ -240,6 +241,47 @@ class PNS_TestConnection:
 
 
 # ──────────────────────────────────────────────────────────────
+# Command: Create Notification Definition
+# ──────────────────────────────────────────────────────────────
+class PNS_CreateNotificationDefinition:
+    def GetResources(self):
+        return {
+            "Pixmap":   icon("push_notification_icon.svg"),
+            "MenuText": "Create Notification Definition",
+            "ToolTip":  "Create a notification definition object in the Notifications folder",
+        }
+
+    def IsActive(self):
+        return FreeCAD.ActiveDocument is not None
+
+    def Activated(self):
+        # Ask for notification name
+        name, ok = QtWidgets.QInputDialog.getText(
+            FreeCADGui.getMainWindow(),
+            "Create Notification Definition",
+            "Enter name for notification definition:",
+            text="Notification"
+        )
+        if not ok or not name.strip():
+            return
+        
+        # Create notification in folder
+        notification = objects.create_notification_in_folder(name.strip())
+        if notification:
+            QtWidgets.QMessageBox.information(
+                FreeCADGui.getMainWindow(),
+                "Push Notification",
+                f"Created notification definition '{name}' in Notifications folder."
+            )
+        else:
+            QtWidgets.QMessageBox.critical(
+                FreeCADGui.getMainWindow(),
+                "Push Notification",
+                f"Failed to create notification definition."
+            )
+
+
+# ──────────────────────────────────────────────────────────────
 # Command: Settings dialog
 # ──────────────────────────────────────────────────────────────
 class PNS_Settings:
@@ -339,5 +381,6 @@ class SettingsDialog(QtWidgets.QDialog):
 for _cmd_class in [
     PNS_Notify, PNS_NotifySuccess, PNS_NotifyError,
     PNS_NotifyRenderDone, PNS_TestConnection, PNS_Settings,
+    PNS_CreateNotificationDefinition,
 ]:
     FreeCADGui.addCommand(_cmd_class.__name__, _cmd_class())

@@ -47,6 +47,14 @@ from push_notification.core import (
     Notification,
 )
 
+from push_notification.objects import (
+    create_notification_definition,
+    ensure_notification_folder,
+    create_notification_in_folder,
+    NotificationDefinition,
+    ViewProviderNotificationDefinition,
+)
+
 __all__ = [
     "notify",
     "notify_success",
@@ -57,6 +65,11 @@ __all__ = [
     "notify_fem_done",
     "send",
     "Notification",
+    "create_notification_definition",
+    "ensure_notification_folder",
+    "create_notification_in_folder",
+    "NotificationDefinition",
+    "ViewProviderNotificationDefinition",
 ]
 
 __version__ = "1.0.0"
