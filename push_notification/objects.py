@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.07-V01 ##                     *
+# * ## Push Notification FreeCAD WorkBench 2026.04.09-V01 ##                    *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -27,135 +27,154 @@
 # *      more information regarding this WorkBench and its usage                 *
 # *                                                                              *
 # ********************************************************************************
-"""
-push_notification/objects.py
-FreeCAD document objects for Push Notification workbench.
-"""
+"""FreeCAD document objects for the Push Notification workbench."""
+
+from typing import Optional
 
 import FreeCAD as App
 import FreeCADGui as Gui
-from typing import Optional, List
+
+from push_notification import core
+
+
+def _ensure_property(obj, prop_name: str, prop_type: str, group: str, doc: str):
+    if prop_name in obj.PropertiesList:
+        return False
+    obj.addProperty(prop_type, prop_name, group, doc)
+    return True
+
+
+def _ensure_trigger_property(obj):
+    current_value = core.TRIGGER_DOCUMENT_SAVED
+    if "Trigger" in obj.PropertiesList:
+        try:
+            current_value = str(getattr(obj, "Trigger", core.TRIGGER_DOCUMENT_SAVED) or core.TRIGGER_DOCUMENT_SAVED)
+        except Exception:
+            current_value = core.TRIGGER_DOCUMENT_SAVED
+        try:
+            if obj.getTypeIdOfProperty("Trigger") != "App::PropertyEnumeration":
+                obj.removeProperty("Trigger")
+        except Exception:
+            pass
+    if "Trigger" not in obj.PropertiesList:
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "Trigger",
+            "Notification",
+            "When to send the notification",
+        )
+    try:
+        obj.Trigger = list(core.SUPPORTED_TRIGGERS)
+    except Exception:
+        pass
+    try:
+        obj.Trigger = current_value if current_value in core.SUPPORTED_TRIGGERS else core.TRIGGER_DOCUMENT_SAVED
+    except Exception:
+        obj.Trigger = core.TRIGGER_DOCUMENT_SAVED
 
 
 class NotificationDefinition:
     """FeaturePython object representing a notification definition."""
-    
+
     def __init__(self, obj):
-        """Initialize the object with default properties."""
         self.Type = "NotificationDefinition"
         self.Object = obj
-        
-        # Add properties
-        obj.addProperty("App::PropertyString", "Name", "Notification", "Name of this notification definition")
-        obj.addProperty("App::PropertyString", "Trigger", "Notification", "When to send the notification")
-        obj.addProperty("App::PropertyString", "Message", "Notification", "Message to send")
-        obj.addProperty("App::PropertyString", "Title", "Notification", "Notification title")
-        obj.addProperty("App::PropertyInteger", "Priority", "Notification", "Priority (1-5)")
-        obj.addProperty("App::PropertyStringList", "Tags", "Notification", "Tags for the notification")
-        
-        # Set default values
-        obj.Name = "New Notification"
-        obj.Trigger = "when Solve is complete"  # Currently only option
-        obj.Message = "Task completed successfully"
-        obj.Title = "FreeCAD Notification"
-        obj.Priority = 3
-        obj.Tags = ["white_check_mark"]
-        
+        self.initProperties(obj)
         obj.Proxy = self
-    
+
+    def initProperties(self, obj):
+        added_name = _ensure_property(obj, "Name", "App::PropertyString", "Notification", "Name of this notification definition")
+        _ensure_trigger_property(obj)
+        added_message = _ensure_property(obj, "Message", "App::PropertyString", "Notification", "Message to send")
+        added_title = _ensure_property(obj, "Title", "App::PropertyString", "Notification", "Notification title")
+        added_priority = _ensure_property(obj, "Priority", "App::PropertyInteger", "Notification", "Priority (1-5)")
+        added_tags = _ensure_property(obj, "Tags", "App::PropertyStringList", "Notification", "Tags for the notification")
+
+        if added_name or not str(getattr(obj, "Name", "") or "").strip():
+            obj.Name = "New Notification"
+        if added_message or not str(getattr(obj, "Message", "") or "").strip():
+            obj.Message = "Document event completed for {doc}"
+        if added_title or not str(getattr(obj, "Title", "") or "").strip():
+            obj.Title = "FreeCAD Notification"
+        if added_priority:
+            obj.Priority = 3
+        if added_tags or not list(getattr(obj, "Tags", []) or []):
+            obj.Tags = ["white_check_mark"]
+
     def execute(self, obj):
-        """Called on document recompute (not used for notifications)."""
-        pass
-    
+        return
+
     def onChanged(self, obj, prop):
-        """Called when a property changes."""
-        pass
-    
+        if prop == "Priority":
+            try:
+                obj.Priority = max(1, min(5, int(getattr(obj, "Priority", 3) or 3)))
+            except Exception:
+                obj.Priority = 3
+
     def onDocumentRestored(self, obj):
-        """Called when document is restored."""
         self.Object = obj
+        self.initProperties(obj)
         obj.Proxy = self
 
 
 class ViewProviderNotificationDefinition:
     """View provider for NotificationDefinition objects."""
-    
+
     def __init__(self, vobj):
         vobj.Proxy = self
-    
+
     def getIcon(self):
-        """Return the icon for this object."""
         return ":/icons/push_notification_icon.svg"
-    
+
     def attach(self, vobj):
-        """Attach the view provider to the object."""
         self.Object = vobj.Object
-    
+
     def claimChildren(self):
-        """Return children (none)."""
         return []
-    
+
     def setEdit(self, vobj, mode):
-        """Start editing the object."""
         return False
-    
+
     def unsetEdit(self, vobj, mode):
-        """Stop editing the object."""
-        pass
-    
+        return
+
     def doubleClicked(self, vobj):
-        """Handle double-click."""
         return False
-    
+
     def __getstate__(self):
-        """Return state for serialization."""
         return None
-    
+
     def __setstate__(self, state):
-        """Restore state from serialization."""
-        pass
+        return None
 
 
 def create_notification_definition(name: str = "Notification") -> Optional[App.DocumentObject]:
-    """Create a new NotificationDefinition object in the active document."""
     if not App.ActiveDocument:
         App.Console.PrintError("No active document to create notification in\n")
         return None
-    
+
     try:
-        # Create the FeaturePython object
         obj = App.ActiveDocument.addObject("App::FeaturePython", name)
         NotificationDefinition(obj)
-        
         if Gui.ActiveDocument:
             ViewProviderNotificationDefinition(obj.ViewObject)
-        
-        # Set label (user-visible name)
         obj.Label = name
-        
         App.Console.PrintMessage(f"Created notification definition '{name}'\n")
         return obj
-    
     except Exception as e:
         App.Console.PrintError(f"Failed to create notification definition: {e}\n")
         return None
 
 
 def ensure_notification_folder() -> Optional[App.DocumentObject]:
-    """Ensure the document has a 'Notifications' folder/group.
-    Returns the folder object or None if no active document."""
     if not App.ActiveDocument:
         return None
-    
+
     doc = App.ActiveDocument
-    
-    # Look for existing "Notifications" group
     for obj in doc.Objects:
-        if hasattr(obj, 'TypeId') and obj.TypeId == "App::DocumentObjectGroup":
-            if obj.Label == "Notifications":
-                return obj
-    
-    # Create new group
+        if getattr(obj, "TypeId", "") == "App::DocumentObjectGroup" and getattr(obj, "Label", "") == "Notifications":
+            return obj
+
     try:
         folder = doc.addObject("App::DocumentObjectGroup", "Notifications")
         folder.Label = "Notifications"
@@ -167,21 +186,17 @@ def ensure_notification_folder() -> Optional[App.DocumentObject]:
 
 
 def create_notification_in_folder(name: str = "Notification") -> Optional[App.DocumentObject]:
-    """Create a notification definition and add it to the Notifications folder."""
-    # Ensure folder exists
     folder = ensure_notification_folder()
     if not folder:
         return None
-    
-    # Create notification definition
+
     notification = create_notification_definition(name)
     if not notification:
         return None
-    
-    # Add to folder
+
     try:
         folder.addObject(notification)
         return notification
     except Exception as e:
         App.Console.PrintError(f"Failed to add notification to folder: {e}\n")
-        return notification  # Return notification even if folder addition fails
+        return notification

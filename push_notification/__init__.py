@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.07-V01 ##                     *
+# * ## Push Notification FreeCAD WorkBench 2026.04.09-V01 ##                    *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -27,49 +27,53 @@
 # *      more information regarding this WorkBench and its usage                 *
 # *                                                                              *
 # ********************************************************************************
-"""
-push_notification — public API
-Import this module in macros:
-
-    from push_notification import notify, notify_success, notify_error
-    notify("My custom message", title="Step 3 done", priority=3)
-"""
+"""push_notification public API."""
 
 from push_notification.core import (
+    Notification,
+    SUPPORTED_TRIGGERS,
+    TRIGGER_DOCUMENT_SAVED,
+    TRIGGER_FREECAD_ERROR,
+    emit_trigger,
+    install_hooks,
     notify,
-    notify_success,
     notify_error,
-    notify_warning,
-    notify_render_done,
     notify_export_done,
     notify_fem_done,
+    notify_render_done,
+    notify_success,
+    notify_warning,
     send,
-    Notification,
 )
 
 from push_notification.objects import (
-    create_notification_definition,
-    ensure_notification_folder,
-    create_notification_in_folder,
     NotificationDefinition,
     ViewProviderNotificationDefinition,
+    create_notification_definition,
+    create_notification_in_folder,
+    ensure_notification_folder,
 )
 
 __all__ = [
+    "Notification",
+    "SUPPORTED_TRIGGERS",
+    "TRIGGER_DOCUMENT_SAVED",
+    "TRIGGER_FREECAD_ERROR",
+    "emit_trigger",
+    "install_hooks",
     "notify",
-    "notify_success",
     "notify_error",
-    "notify_warning",
-    "notify_render_done",
     "notify_export_done",
     "notify_fem_done",
+    "notify_render_done",
+    "notify_success",
+    "notify_warning",
     "send",
-    "Notification",
-    "create_notification_definition",
-    "ensure_notification_folder",
-    "create_notification_in_folder",
     "NotificationDefinition",
     "ViewProviderNotificationDefinition",
+    "create_notification_definition",
+    "create_notification_in_folder",
+    "ensure_notification_folder",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
