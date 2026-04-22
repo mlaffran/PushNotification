@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.09-V01 ##                    *
+# * ## PushNotification FreeCAD WorkBench 2026.04.09-V01 ##                    *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -27,7 +27,7 @@
 # *      more information regarding this WorkBench and its usage                 *
 # *                                                                              *
 # ********************************************************************************
-"""FreeCAD document objects for the Push Notification workbench."""
+"""FreeCAD document objects for the PushNotification workbench."""
 
 from typing import Optional
 
@@ -89,6 +89,7 @@ class NotificationDefinition:
         added_title = _ensure_property(obj, "Title", "App::PropertyString", "Notification", "Notification title")
         added_priority = _ensure_property(obj, "Priority", "App::PropertyInteger", "Notification", "Priority (1-5)")
         added_tags = _ensure_property(obj, "Tags", "App::PropertyStringList", "Notification", "Tags for the notification")
+        added_click_url = _ensure_property(obj, "ClickURL", "App::PropertyString", "Notification", "URL to open when notification is clicked")
 
         if added_name or not str(getattr(obj, "Name", "") or "").strip():
             obj.Name = "New Notification"

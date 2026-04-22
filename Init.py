@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.09-V01 ##                    *
+# * ## PushNotification FreeCAD WorkBench 2026.04.09-V01 ##                    *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -28,7 +28,7 @@
 # *                                                                              *
 # ********************************************************************************
 """
-Push Notification non-GUI initialisation.
+PushNotification non-GUI initialisation.
 Registers and installs automatic hooks.
 """
 
@@ -40,9 +40,9 @@ def initialize():
     """Called once on FreeCAD startup."""
     installed = core.install_hooks()
     if installed:
-        FreeCAD.Console.PrintMessage("Push Notification: initialised and hooks installed.\n")
+        FreeCAD.Console.PrintMessage("PushNotification: initialised and hooks installed.\n")
     else:
-        FreeCAD.Console.PrintWarning("Push Notification: initialised, but hooks were not fully installed.\n")
+        FreeCAD.Console.PrintWarning("PushNotification: initialised, but hooks were not fully installed.\n")
 
 
 initialize()

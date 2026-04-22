@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.07-V01 ##                     *
+# * ## PushNotification FreeCAD WorkBench 2026.04.09-V01 ##                     *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -37,10 +37,10 @@ import FreeCAD
 import FreeCADGui
 
 class PushNotificationWorkbench(FreeCADGui.Workbench):
-    """Push Notification Workbench"""
+    """PushNotification Workbench"""
 
-    MenuText = "Push Notification"
-    ToolTip  = "Send push notifications via the Push Notification workbench"
+    MenuText = "PushNotification"
+    ToolTip  = "Send push notifications via the PushNotification workbench"
 
     def __init__(self):
         wb_dir = os.path.join(FreeCAD.getUserAppDataDir(), "Mod", "PushNotification")
@@ -60,13 +60,13 @@ class PushNotificationWorkbench(FreeCADGui.Workbench):
             "PNS_CreateNotificationDefinition",
         ]
 
-        self.appendToolbar("Push Notification", command_list)
-        self.appendMenu("&Push Notifications", command_list)
+        self.appendToolbar("PushNotification", command_list)
+        self.appendMenu("&PushNotifications", command_list)
 
-        FreeCAD.Console.PrintMessage("Push Notification Workbench loaded.\n")
+        FreeCAD.Console.PrintMessage("PushNotification Workbench loaded.\n")
 
     def Activated(self):
-        FreeCAD.Console.PrintMessage("Push Notification Workbench activated.\n")
+        FreeCAD.Console.PrintMessage("PushNotification Workbench activated.\n")
 
     def Deactivated(self):
         pass

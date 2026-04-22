@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- FreeCAD PNS workbench icon -->
+  <rect width="64" height="64" rx="12" fill="#1a1a2e"/>
+  <!-- Gear (FreeCAD) -->
+  <g transform="translate(10,10) scale(0.55)">
+    <path d="M32 20a12 12 0 1 0 0 24 12 12 0 0 0 0-24z" fill="#4fc3f7"/>
+    <path d="M32 4l-3 8h-2l-3-8h8zm0 56l-3-8h-2l-3 8h8zM4 32l8-3v-2L4 24v8zm56 0l-8-3v-2l8-3v8z
+             M11.5 11.5l5.5 6 1.4-1.4-6-5.5-1 1zm29.6 29.6l5.5 6 1-1-6-5.5-1.4 1.4zM52.5 11.5l-6 5.5 1.4 1.4 5.5-6-1-1z
+             M22.9 41.1l-5.5 6 1 1 6-5.5-1.5-1.5z" fill="#81d4fa"/>
+  </g>
+  <!-- Bell (notification) -->
+  <g transform="translate(32,8)">
+    <path d="M12 2a8 8 0 0 0-8 8v8l-3 4h22l-3-4v-8a8 8 0 0 0-8-8z" fill="#ffd54f" opacity="0.95"/>
+    <path d="M9 22a3 3 0 0 0 6 0" fill="#ffd54f"/>
+    <!-- iPhone silhouette -->
+    <rect x="4" y="28" width="16" height="24" rx="3" fill="#e0e0e0" opacity="0.9"/>
+    <rect x="6" y="31" width="12" height="16" rx="1" fill="#4fc3f7" opacity="0.7"/>
+    <circle cx="12" cy="50" r="1.5" fill="#bdbdbd"/>
+  </g>
+</svg>

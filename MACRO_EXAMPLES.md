@@ -1,4 +1,4 @@
-# Push Notification – Macro Examples
+# PushNotification – Macro Examples
 
 Once the workbench is installed you can import the public API from any FreeCAD
 macro:

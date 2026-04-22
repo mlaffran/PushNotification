@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.07-V01 ##                     *
+# * ## PushNotification FreeCAD WorkBench 2026.04.09-V01 ##                     *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -41,6 +41,7 @@ except ImportError:
 
 from push_notification import core
 from push_notification import objects
+from push_notification import encryption
 
 
 # ──────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ class PNS_Notify:
         return {
             "Pixmap":   icon("notify.svg"),
             "MenuText": "Send Notification",
-            "ToolTip":  "Send a custom push notification to Push Notification",
+            "ToolTip":  "Send a custom push notification to PushNotification",
             "Accel":    "Shift+N",
         }
 
@@ -81,7 +82,7 @@ class NotifyDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Send Notification – Push Notification")
+        self.setWindowTitle("Send Notification – PushNotification")
         self.setMinimumWidth(440)
         self._build_ui()
 
@@ -125,7 +126,7 @@ class NotifyDialog(QtWidgets.QDialog):
     def _send(self):
         message = self.msg_edit.toPlainText().strip()
         if not message:
-            QtWidgets.QMessageBox.warning(self, "Push Notification", "Please enter a message.")
+            QtWidgets.QMessageBox.warning(self, "PushNotification", "Please enter a message.")
             return
         title    = self.title_edit.text().strip() or "FreeCAD"
         priority = self.PRIORITY_MAP[self.priority_combo.currentText()]
@@ -157,7 +158,7 @@ class PNS_NotifySuccess:
             doc_name = FreeCAD.ActiveDocument.Name
         msg = f"Task completed successfully.{(' – ' + doc_name) if doc_name else ''}"
         core.notify_success(msg)
-        FreeCAD.Console.PrintMessage("[Push Notification] Success notification sent.\n")
+        FreeCAD.Console.PrintMessage("[PushNotification] Success notification sent.\n")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -177,7 +178,7 @@ class PNS_NotifyError:
     def Activated(self):
         msg, ok = QtWidgets.QInputDialog.getText(
             FreeCADGui.getMainWindow(),
-            "Push Notification – Error Notification",
+            "PushNotification – Error Notification",
             "Error message to send:"
         )
         if ok and msg:
@@ -225,8 +226,8 @@ class PNS_TestConnection:
     def Activated(self):
         core.send(
             core.Notification(
-                message="Push Notification workbench is connected and working! ✅",
-                title="🔧 Push Notification Test",
+                message="PushNotification workbench is connected and working! ✅",
+                title="🔧 PushNotification Test",
                 priority=3,
                 tags=["wrench", "white_check_mark"],
             ),
@@ -234,7 +235,7 @@ class PNS_TestConnection:
         )
         QtWidgets.QMessageBox.information(
             FreeCADGui.getMainWindow(),
-            "Push Notification",
+            "PushNotification",
             f"Test notification sent to:\n{core.get_server_url()}/{core.get_topic()}\n\n"
             f"Check your iPhone app!"
         )
@@ -270,14 +271,53 @@ class PNS_CreateNotificationDefinition:
         if notification:
             QtWidgets.QMessageBox.information(
                 FreeCADGui.getMainWindow(),
-                "Push Notification",
+                "PushNotification",
                 f"Created notification definition '{name}' in Notifications folder."
             )
         else:
             QtWidgets.QMessageBox.critical(
                 FreeCADGui.getMainWindow(),
-                "Push Notification",
+                "PushNotification",
                 f"Failed to create notification definition."
+            )
+
+
+# ──────────────────────────────────────────────────────────────
+# Command: Create Simulation Completion Notification
+# ──────────────────────────────────────────────────────────────
+class PNS_CreateSimulationNotification:
+    def GetResources(self):
+        return {
+            "Pixmap":   icon("push_notification_icon.svg"),
+            "MenuText": "Create Simulation Notification",
+            "ToolTip":  "Create a notification definition for when simulations finish",
+        }
+
+    def IsActive(self):
+        return FreeCAD.ActiveDocument is not None
+
+    def Activated(self):
+        # Create notification in folder with simulation trigger
+        notification = objects.create_notification_in_folder("Simulation Complete")
+        if notification:
+            # Set properties for simulation completion
+            notification.Trigger = core.TRIGGER_SIMULATION_FINISHED
+            notification.Message = "FreeCAD simulation finished"
+            notification.Title = "✅ Simulation Complete"
+            notification.Priority = 3
+            notification.Tags = ["white_check_mark", "gear"]
+            
+            QtWidgets.QMessageBox.information(
+                FreeCADGui.getMainWindow(),
+                "PushNotification",
+                "Created simulation completion notification definition.\n\n"
+                "This notification will be sent when MultiBodySimulation solves finish."
+            )
+        else:
+            QtWidgets.QMessageBox.critical(
+                FreeCADGui.getMainWindow(),
+                "PushNotification",
+                f"Failed to create simulation notification definition."
             )
 
 
@@ -289,7 +329,7 @@ class PNS_Settings:
         return {
             "Pixmap":   icon("settings.svg"),
             "MenuText": "PNS Settings…",
-            "ToolTip":  "Configure the Push Notification server and topic",
+            "ToolTip":  "Configure the PushNotification server and topic",
         }
 
     def IsActive(self):
@@ -303,8 +343,21 @@ class PNS_Settings:
 class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Push Notification Settings")
+        self.setWindowTitle("PushNotification Settings")
         self.setMinimumWidth(460)
+        
+        # Try to load notification link from encrypted file
+        self._loaded_from_file = False
+        if FreeCAD.ActiveDocument:
+            doc_path = getattr(FreeCAD.ActiveDocument, "FileName", "")
+            if doc_path:
+                loaded_link = encryption.load_notification_link_from_file(doc_path)
+                if loaded_link is not None:
+                    # Found encrypted file, use its value
+                    core.set_notification_link(loaded_link)
+                    self._loaded_from_file = True
+                    FreeCAD.Console.PrintMessage(f"[PushNotification] Loaded notification link from encrypted file: {loaded_link}\n")
+        
         self._build_ui()
 
     def _build_ui(self):
@@ -328,6 +381,16 @@ class SettingsDialog(QtWidgets.QDialog):
         server_form.addRow("Auth Token:", self.token_edit)
 
         layout.addWidget(server_group)
+
+        # ── Notification Link ───────────────────────
+        link_group = QtWidgets.QGroupBox("Notification Link")
+        link_form = QtWidgets.QFormLayout(link_group)
+        
+        self.link_edit = QtWidgets.QLineEdit(core.get_notification_link())
+        self.link_edit.setPlaceholderText("https://example.com (optional – URL to open when notification is clicked)")
+        link_form.addRow("Default Click URL:", self.link_edit)
+        
+        layout.addWidget(link_group)
 
         # ── Notification behaviour ──────────────────
         behav_group = QtWidgets.QGroupBox("Automatic Notifications")
@@ -366,12 +429,28 @@ class SettingsDialog(QtWidgets.QDialog):
         self.preview_label.setText(f"📲 iPhone subscribes to: {url}/{topic}/json")
 
     def _save(self):
+        # Save to FreeCAD preferences
         core.set_server_url(self.server_edit.text().strip())
         core.set_topic(self.topic_edit.text().strip())
         core.set_token(self.token_edit.text().strip())
         core.set_notify_on_error(self.chk_error.isChecked())
         core.set_notify_on_save(self.chk_save.isChecked())
-        FreeCAD.Console.PrintMessage("[Push Notification] Settings saved.\n")
+        
+        # Save notification link
+        notification_link = self.link_edit.text().strip()
+        core.set_notification_link(notification_link)
+        
+        # Try to save to encrypted file in document folder
+        if FreeCAD.ActiveDocument:
+            doc_path = getattr(FreeCAD.ActiveDocument, "FileName", "")
+            if doc_path:
+                success = encryption.save_notification_link_to_file(doc_path, notification_link)
+                if success:
+                    FreeCAD.Console.PrintMessage("[PushNotification] Settings saved to encrypted .PushNotification file.\n")
+                else:
+                    FreeCAD.Console.PrintWarning("[PushNotification] Could not save to encrypted file (document not saved yet?).\n")
+        
+        FreeCAD.Console.PrintMessage("[PushNotification] Settings saved.\n")
         self.accept()
 
 
@@ -381,6 +460,6 @@ class SettingsDialog(QtWidgets.QDialog):
 for _cmd_class in [
     PNS_Notify, PNS_NotifySuccess, PNS_NotifyError,
     PNS_NotifyRenderDone, PNS_TestConnection, PNS_Settings,
-    PNS_CreateNotificationDefinition,
+    PNS_CreateNotificationDefinition, PNS_CreateSimulationNotification,
 ]:
     FreeCADGui.addCommand(_cmd_class.__name__, _cmd_class())

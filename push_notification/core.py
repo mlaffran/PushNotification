@@ -17,7 +17,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.09-V01 ##                    *
+# * ## PushNotification FreeCAD WorkBench 2026.04.09-V01 ##                    *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -44,9 +44,11 @@ PREF_GROUP = "User parameter:BaseApp/Preferences/FreeCADPNS"
 
 TRIGGER_DOCUMENT_SAVED = "when document is saved"
 TRIGGER_FREECAD_ERROR = "when FreeCAD error occurs"
+TRIGGER_SIMULATION_FINISHED = "when simulation finishes"
 SUPPORTED_TRIGGERS = (
     TRIGGER_DOCUMENT_SAVED,
     TRIGGER_FREECAD_ERROR,
+    TRIGGER_SIMULATION_FINISHED,
 )
 
 _HOOKS_INSTALLED = False
@@ -92,7 +94,7 @@ def set_default_priority(p: int):
 
 
 def get_notify_on_error() -> bool:
-    return _prefs().GetBool("NotifyOnError", True)
+    return _prefs().GetBool("NotifyOnError", False)
 
 
 def set_notify_on_error(v: bool):
@@ -105,6 +107,14 @@ def get_notify_on_save() -> bool:
 
 def set_notify_on_save(v: bool):
     _prefs().SetBool("NotifyOnSave", v)
+
+
+def get_notification_link() -> str:
+    return _prefs().GetString("NotificationLink", "")
+
+
+def set_notification_link(link: str):
+    _prefs().SetString("NotificationLink", link.strip())
 
 
 @dataclass
@@ -152,18 +162,18 @@ def send(notification: Notification,
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     FreeCAD.Console.PrintMessage(
-                        f"[Push Notification] Notification sent: {notification.title}\n"
+                        f"[PushNotification] Notification sent: {notification.title}\n"
                     )
                 else:
                     FreeCAD.Console.PrintWarning(
-                        f"[Push Notification] Server returned HTTP {resp.status}\n"
+                        f"[PushNotification] Server returned HTTP {resp.status}\n"
                     )
         except urllib.error.URLError as e:
             FreeCAD.Console.PrintError(
-                f"[Push Notification] Failed to send notification: {e}\n"
+                f"[PushNotification] Failed to send notification: {e}\n"
             )
         except Exception as e:
-            FreeCAD.Console.PrintError(f"[Push Notification] Unexpected error: {e}\n")
+            FreeCAD.Console.PrintError(f"[PushNotification] Unexpected error: {e}\n")
 
     if blocking:
         _send()
@@ -287,7 +297,12 @@ def _build_notification_from_definition(obj,
         priority = get_default_priority()
     priority = max(1, min(5, priority))
     tags = list(getattr(obj, "Tags", []) or list(default_tags or []))
-    return Notification(message=message, title=title, priority=priority, tags=tags)
+    click_url = getattr(obj, "ClickURL", "")
+    if click_url:
+        click_url = str(click_url).strip()
+    if not click_url:
+        click_url = None
+    return Notification(message=message, title=title, priority=priority, tags=tags, click_url=click_url)
 
 
 def emit_trigger(trigger: str,
@@ -352,7 +367,7 @@ class _PushNotificationDocumentObserver:
             _dispatch_save_notifications(doc)
         except Exception as err:
             if _ORIGINAL_PRINT_ERROR is not None:
-                _ORIGINAL_PRINT_ERROR(f"[Push Notification] Save hook failed: {err}\n")
+                _ORIGINAL_PRINT_ERROR(f"[PushNotification] Save hook failed: {err}\n")
 
     def slotCreatedDocument(self, doc):
         return
@@ -400,7 +415,7 @@ def install_hooks() -> bool:
     except Exception as err:
         installed = False
         FreeCAD.Console.PrintWarning(
-            f"[Push Notification] Failed to install document observer: {err}\n"
+            f"[PushNotification] Failed to install document observer: {err}\n"
         )
 
     try:
@@ -425,8 +440,41 @@ def install_hooks() -> bool:
     except Exception as err:
         installed = False
         FreeCAD.Console.PrintWarning(
-            f"[Push Notification] Failed to install error hook: {err}\n"
+            f"[PushNotification] Failed to install error hook: {err}\n"
         )
 
     _HOOKS_INSTALLED = installed
     return installed
+
+
+def uninstall_hooks() -> bool:
+    global _HOOKS_INSTALLED, _SAVE_OBSERVER, _ORIGINAL_PRINT_ERROR
+    if not _HOOKS_INSTALLED:
+        return True
+    
+    success = True
+    
+    # Remove document observer
+    if _SAVE_OBSERVER is not None:
+        try:
+            FreeCAD.removeDocumentObserver(_SAVE_OBSERVER)
+            _SAVE_OBSERVER = None
+        except Exception as err:
+            FreeCAD.Console.PrintWarning(
+                f"[PushNotification] Failed to remove document observer: {err}\n"
+            )
+            success = False
+    
+    # Restore original PrintError
+    if _ORIGINAL_PRINT_ERROR is not None:
+        try:
+            FreeCAD.Console.PrintError = _ORIGINAL_PRINT_ERROR
+            _ORIGINAL_PRINT_ERROR = None
+        except Exception as err:
+            FreeCAD.Console.PrintWarning(
+                f"[PushNotification] Failed to restore PrintError: {err}\n"
+            )
+            success = False
+    
+    _HOOKS_INSTALLED = False
+    return success

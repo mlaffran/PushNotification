@@ -18,7 +18,7 @@
 # *_____________________________________________________________________________ *
 # *                                                                              *
 # *     ##########################################################               *
-# * ## Push Notification FreeCAD WorkBench 2026.04.07-V01 ##                     *
+# * ## PushNotification FreeCAD WorkBench 2026.04.09-V01 ##                     *
 # *     ##########################################################               *
 # *                                                                              *
 # *                   Authors of this workbench:                                 *
@@ -28,7 +28,7 @@
 # *      more information regarding this WorkBench and its usage                 *
 # *                                                                              *
 # ********************************************************************************
-"""Generate simple SVG icons for the Push Notification toolbar."""
+"""Generate simple SVG icons for the PushNotification toolbar."""
 
 import os
 

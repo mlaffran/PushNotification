@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="10" fill="#1565C0"/>
-  <path d="M32 8a14 14 0 0 0-14 14v12l-4 6h36l-4-6V22A14 14 0 0 0 32 8z" fill="#FFF9C4"/>
-  <path d="M26 40a6 6 0 0 0 12 0" fill="#FFF9C4"/>
-  <circle cx="32" cy="14" r="3" fill="#FF8F00"/>
+  <rect x="9" y="9" width="46" height="46" rx="12" fill="#f8fafc" stroke="#111827" stroke-width="3"/>
+  <!-- Bell with orange color -->
+  <path d="M32 16a12 12 0 0 0-12 12v10l-3 5h30l-3-5V28a12 12 0 0 0-12-12z" fill="#ff8a65" stroke="#111827" stroke-width="2"/>
+  <path d="M24 42a4 4 0 0 0 8 0" fill="#ff8a65"/>
+  <!-- Notification dot -->
+  <circle cx="32" cy="20" r="4" fill="#35b9a6" stroke="#111827" stroke-width="1.5"/>
 </svg>
