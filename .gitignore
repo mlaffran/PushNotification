@@ -28,7 +28,3 @@ Thumbs.db
 .idea/
 *.swp
 *~
-
-# Specific directories to ignore
-{icons,resources}/
-__pycache__/

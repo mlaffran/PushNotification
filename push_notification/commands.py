@@ -41,7 +41,6 @@ except ImportError:
 
 from push_notification import core
 from push_notification import objects
-from push_notification import encryption
 
 
 # ──────────────────────────────────────────────────────────────
@@ -345,19 +344,6 @@ class SettingsDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("PushNotification Settings")
         self.setMinimumWidth(460)
-        
-        # Try to load notification link from encrypted file
-        self._loaded_from_file = False
-        if FreeCAD.ActiveDocument:
-            doc_path = getattr(FreeCAD.ActiveDocument, "FileName", "")
-            if doc_path:
-                loaded_link = encryption.load_notification_link_from_file(doc_path)
-                if loaded_link is not None:
-                    # Found encrypted file, use its value
-                    core.set_notification_link(loaded_link)
-                    self._loaded_from_file = True
-                    FreeCAD.Console.PrintMessage(f"[PushNotification] Loaded notification link from encrypted file: {loaded_link}\n")
-        
         self._build_ui()
 
     def _build_ui(self):
@@ -439,17 +425,7 @@ class SettingsDialog(QtWidgets.QDialog):
         # Save notification link
         notification_link = self.link_edit.text().strip()
         core.set_notification_link(notification_link)
-        
-        # Try to save to encrypted file in document folder
-        if FreeCAD.ActiveDocument:
-            doc_path = getattr(FreeCAD.ActiveDocument, "FileName", "")
-            if doc_path:
-                success = encryption.save_notification_link_to_file(doc_path, notification_link)
-                if success:
-                    FreeCAD.Console.PrintMessage("[PushNotification] Settings saved to encrypted .PushNotification file.\n")
-                else:
-                    FreeCAD.Console.PrintWarning("[PushNotification] Could not save to encrypted file (document not saved yet?).\n")
-        
+
         FreeCAD.Console.PrintMessage("[PushNotification] Settings saved.\n")
         self.accept()
 

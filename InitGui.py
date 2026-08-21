@@ -58,6 +58,7 @@ class PushNotificationWorkbench(FreeCADGui.Workbench):
             "PNS_Settings",
             "PNS_TestConnection",
             "PNS_CreateNotificationDefinition",
+            "PNS_CreateSimulationNotification",
         ]
 
         self.appendToolbar("PushNotification", command_list)
