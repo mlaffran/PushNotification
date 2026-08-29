@@ -16,6 +16,7 @@
     <workbench>
       <classname>PushNotificationWorkbench</classname>
       <subdirectory>.</subdirectory>
+      <depend optional="True" type="automatic">keyring</depend>
     </workbench>
   </content>
   <tag>notification</tag>

@@ -70,6 +70,17 @@ and error text). For anything sensitive:
   [protected topic](https://docs.ntfy.sh/publish/#authentication), or
 - Point **Server URL** at a self-hosted ntfy instance.
 
+By default the auth token is stored in FreeCAD's own preferences
+(`user.cfg`) as **plain text**. If the optional
+[`keyring`](https://pypi.org/project/keyring/) Python package is installed
+in FreeCAD's Python environment, the workbench will store and retrieve the
+token through your OS credential store instead — macOS Keychain, Windows
+Credential Locker, or the Linux Secret Service (GNOME Keyring/KWallet) —
+and automatically fall back to plaintext storage (with a console warning)
+if `keyring` is missing or its backend is unavailable. To enable it, install
+`keyring` into FreeCAD's Python (e.g. via the Addon Manager's dependency
+prompt, or `pip install keyring` targeting FreeCAD's interpreter).
+
 ## Usage
 
 | Command | What it does |

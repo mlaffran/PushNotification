@@ -40,6 +40,18 @@ from typing import List, Optional
 
 import FreeCAD
 
+try:
+    import keyring
+    import keyring.errors
+    _KEYRING_IMPORT_ERROR = None
+except Exception as _err:  # pragma: no cover - depends on host environment
+    keyring = None
+    _KEYRING_IMPORT_ERROR = _err
+
+_KEYRING_SERVICE = "FreeCAD-PushNotification"
+_KEYRING_USERNAME = "ntfy-token"
+_KEYRING_WARNED = False
+
 PREF_GROUP = "User parameter:BaseApp/Preferences/FreeCADPNS"
 
 TRIGGER_DOCUMENT_SAVED = "when document is saved"
@@ -77,12 +89,46 @@ def set_topic(topic: str):
     _prefs().SetString("Topic", topic.strip())
 
 
+def _warn_keyring_fallback(reason: str):
+    global _KEYRING_WARNED
+    if _KEYRING_WARNED:
+        return
+    _KEYRING_WARNED = True
+    FreeCAD.Console.PrintWarning(
+        f"[PushNotification] Secure token storage unavailable ({reason}); "
+        "falling back to plaintext storage in FreeCAD preferences.\n"
+    )
+
+
 def get_token() -> str:
+    if keyring is not None:
+        try:
+            token = keyring.get_password(_KEYRING_SERVICE, _KEYRING_USERNAME)
+            if token:
+                return token
+        except Exception as err:
+            _warn_keyring_fallback(str(err))
+    # Fall back to (or migrate from) the plaintext preference value.
     return _prefs().GetString("Token", "")
 
 
 def set_token(token: str):
-    _prefs().SetString("Token", token.strip())
+    token = token.strip()
+    if keyring is not None:
+        try:
+            if token:
+                keyring.set_password(_KEYRING_SERVICE, _KEYRING_USERNAME, token)
+            else:
+                try:
+                    keyring.delete_password(_KEYRING_SERVICE, _KEYRING_USERNAME)
+                except keyring.errors.PasswordDeleteError:
+                    pass
+            # Clear any legacy plaintext copy now that keyring holds the token.
+            _prefs().SetString("Token", "")
+            return
+        except Exception as err:
+            _warn_keyring_fallback(str(err))
+    _prefs().SetString("Token", token)
 
 
 def get_default_priority() -> int:
