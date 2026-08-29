@@ -2,8 +2,8 @@
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
   <name>PushNotification</name>
   <description>Send push notifications (e.g. to your phone via ntfy) when FreeCAD saves a document, hits an error, or finishes a long-running task such as a render, export, FEM analysis, or simulation.</description>
-  <version>1.1.0</version>
-  <date>2026-08-21</date>
+  <version>1.2.0</version>
+  <date>2026-08-29</date>
   <maintainer email="laffranchi.marco@gmail.com">Marco Laffranchi</maintainer>
   <license file="LICENSE">GPL-3.0-or-later</license>
   <url type="repository" branch="main">https://github.com/mlaffran/PushNotification.git</url>

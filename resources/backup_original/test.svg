@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="10" fill="#00695C"/>
-  <path d="M20 10h24v6l8 28H16L24 16z" fill="#B2DFDB" opacity=".9"/>
-  <circle cx="24" cy="46" r="4" fill="#4DB6AC"/>
-  <circle cx="32" cy="50" r="4" fill="#4DB6AC"/>
-  <circle cx="40" cy="46" r="4" fill="#4DB6AC"/>
-  <text x="32" y="28" text-anchor="middle" font-size="14" font-weight="bold" fill="#004D40">TEST</text>
-</svg>
