@@ -6,7 +6,9 @@ render or export finishes, or a FEM/simulation solve completes.
 
 Notifications are delivered via [ntfy](https://ntfy.sh), a free, open-source
 pub/sub notification service. Install the ntfy app on your phone, subscribe to
-a topic, and FreeCAD will push messages to it.
+a topic, and FreeCAD will push messages to it. Look for the app with a teal
+speech-bubble icon containing a terminal prompt (`>_`), subtitled
+"Push notifications via REST" in the app store.
 
 ## Features
 
