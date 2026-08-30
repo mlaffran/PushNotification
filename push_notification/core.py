@@ -32,11 +32,12 @@
 from __future__ import annotations
 
 import json
+import secrets
 import threading
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional, Set
 
 import FreeCAD
 
@@ -65,8 +66,7 @@ SUPPORTED_TRIGGERS = (
 
 _HOOKS_INSTALLED = False
 _SAVE_OBSERVER = None
-_ORIGINAL_PRINT_ERROR = None
-_ERROR_GUARD = threading.local()
+_KNOWN_ERROR_OBJECTS: Dict[str, Set[str]] = {}
 
 
 def _prefs():
@@ -81,8 +81,20 @@ def set_server_url(url: str):
     _prefs().SetString("ServerURL", url.rstrip("/"))
 
 
+def _generate_default_topic() -> str:
+    return f"freecad-pns-{secrets.token_hex(6)}"
+
+
 def get_topic() -> str:
-    return _prefs().GetString("Topic", "push-notification")
+    prefs = _prefs()
+    topic = prefs.GetString("Topic", "")
+    if not topic:
+        # ntfy topics are unauthenticated-by-obscurity: a shared hardcoded
+        # default would let anyone subscribe to every install using it.
+        # Generate a random one on first use and persist it.
+        topic = _generate_default_topic()
+        prefs.SetString("Topic", topic)
+    return topic
 
 
 def set_topic(topic: str):
@@ -391,10 +403,10 @@ def _dispatch_save_notifications(doc) -> None:
     )
 
 
-def _dispatch_error_notifications(message: str, doc=None) -> None:
-    text = str(message or "").strip()
-    if not text:
-        return
+def _dispatch_error_notifications(doc, obj) -> None:
+    doc_name = _doc_display_name(doc)
+    obj_label = str(getattr(obj, "Label", "") or getattr(obj, "Name", "") or "Object")
+    text = f"{obj_label} failed to recompute in {doc_name}"
     if get_notify_on_error():
         notify_error(text)
     emit_trigger(
@@ -407,19 +419,43 @@ def _dispatch_error_notifications(message: str, doc=None) -> None:
     )
 
 
+def _check_document_errors(doc) -> None:
+    """Detect objects that just entered an error state after a recompute.
+
+    We watch obj.State rather than hooking FreeCAD.Console.PrintError: the
+    console is used for every error in the application (macros, unrelated
+    workbenches, etc.), and monkey-patching it caused a runaway loop where a
+    failed notification send logged its own error, which triggered another
+    notification, which failed and logged again. Recompute state only
+    reflects this document's objects and carries no such feedback path.
+    """
+    doc_name = str(getattr(doc, "Name", "") or "")
+    if not doc_name:
+        return
+    current_errors = set()
+    for obj in getattr(doc, "Objects", []) or []:
+        if "Invalid" in (getattr(obj, "State", None) or []):
+            current_errors.add(str(getattr(obj, "Name", "") or ""))
+    previous_errors = _KNOWN_ERROR_OBJECTS.get(doc_name, set())
+    for obj_name in current_errors - previous_errors:
+        obj = doc.getObject(obj_name)
+        if obj is not None:
+            _dispatch_error_notifications(doc, obj)
+    _KNOWN_ERROR_OBJECTS[doc_name] = current_errors
+
+
 class _PushNotificationDocumentObserver:
     def slotFinishSaveDocument(self, doc, value=None):
         try:
             _dispatch_save_notifications(doc)
         except Exception as err:
-            if _ORIGINAL_PRINT_ERROR is not None:
-                _ORIGINAL_PRINT_ERROR(f"[PushNotification] Save hook failed: {err}\n")
+            FreeCAD.Console.PrintWarning(f"[PushNotification] Save hook failed: {err}\n")
 
     def slotCreatedDocument(self, doc):
         return
 
     def slotDeletedDocument(self, doc):
-        return
+        _KNOWN_ERROR_OBJECTS.pop(str(getattr(doc, "Name", "") or ""), None)
 
     def slotRelabelDocument(self, doc):
         return
@@ -443,14 +479,17 @@ class _PushNotificationDocumentObserver:
         return
 
     def slotRecomputedDocument(self, doc):
-        return
+        try:
+            _check_document_errors(doc)
+        except Exception as err:
+            FreeCAD.Console.PrintWarning(f"[PushNotification] Error-detection hook failed: {err}\n")
 
     def slotStartSaveDocument(self, doc, value=None):
         return
 
 
 def install_hooks() -> bool:
-    global _HOOKS_INSTALLED, _SAVE_OBSERVER, _ORIGINAL_PRINT_ERROR
+    global _HOOKS_INSTALLED, _SAVE_OBSERVER
     if _HOOKS_INSTALLED:
         return True
 
@@ -464,43 +503,17 @@ def install_hooks() -> bool:
             f"[PushNotification] Failed to install document observer: {err}\n"
         )
 
-    try:
-        if _ORIGINAL_PRINT_ERROR is None:
-            _ORIGINAL_PRINT_ERROR = FreeCAD.Console.PrintError
-
-        def _hooked_print_error(message):
-            if _ORIGINAL_PRINT_ERROR is not None:
-                _ORIGINAL_PRINT_ERROR(message)
-            text = str(message or "").strip()
-            if not text:
-                return
-            if getattr(_ERROR_GUARD, "busy", False):
-                return
-            try:
-                _ERROR_GUARD.busy = True
-                _dispatch_error_notifications(text, getattr(FreeCAD, "ActiveDocument", None))
-            finally:
-                _ERROR_GUARD.busy = False
-
-        FreeCAD.Console.PrintError = _hooked_print_error
-    except Exception as err:
-        installed = False
-        FreeCAD.Console.PrintWarning(
-            f"[PushNotification] Failed to install error hook: {err}\n"
-        )
-
     _HOOKS_INSTALLED = installed
     return installed
 
 
 def uninstall_hooks() -> bool:
-    global _HOOKS_INSTALLED, _SAVE_OBSERVER, _ORIGINAL_PRINT_ERROR
+    global _HOOKS_INSTALLED, _SAVE_OBSERVER
     if not _HOOKS_INSTALLED:
         return True
-    
+
     success = True
-    
-    # Remove document observer
+
     if _SAVE_OBSERVER is not None:
         try:
             FreeCAD.removeDocumentObserver(_SAVE_OBSERVER)
@@ -510,17 +523,7 @@ def uninstall_hooks() -> bool:
                 f"[PushNotification] Failed to remove document observer: {err}\n"
             )
             success = False
-    
-    # Restore original PrintError
-    if _ORIGINAL_PRINT_ERROR is not None:
-        try:
-            FreeCAD.Console.PrintError = _ORIGINAL_PRINT_ERROR
-            _ORIGINAL_PRINT_ERROR = None
-        except Exception as err:
-            FreeCAD.Console.PrintWarning(
-                f"[PushNotification] Failed to restore PrintError: {err}\n"
-            )
-            success = False
-    
+
+    _KNOWN_ERROR_OBJECTS.clear()
     _HOOKS_INSTALLED = False
     return success
